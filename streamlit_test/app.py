@@ -3,7 +3,7 @@ from menu import menu
 import streamlit.components.v1 as components
 
 
-st.set_page_config(layout="wide")
+
 menu()
 
 html_content = """

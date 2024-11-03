@@ -1,5 +1,7 @@
 import streamlit as st
 def menu():
+    st.set_page_config(layout="wide")
+    st._config.set_option('theme.base', 'light')
     # Show a navigation menu for authenticated users
     st.sidebar.page_link("app.py", label="首頁")
     st.sidebar.page_link("pages/Southern_Taiwan_Science_Park.py", label="南科園區指標") # Southern Taiwan Science Park
@@ -12,7 +14,8 @@ def menu():
     with st.sidebar.expander("房價特徵權重變化趨勢", expanded=True):
             st.page_link("pages/RF_all.py", label="Random Forest", icon="👤")
             st.page_link("pages/XG_all.py", label="XGboost", icon="🔐")
-            
+
+
 
     # with st.sidebar.expander("房價權重變化趨勢", expanded=True):
     #     section2 = st.radio("", ["總體", "南科聚落"])
@@ -23,3 +26,4 @@ def menu():
     #         st.sidebar.page_link("pages/streamlit_app.py", label="Random Forest", icon="🏢")
     #         st.sidebar.page_link("pages/streamlit_app.py", label="XGboost", icon="🔐")
     st.sidebar.page_link("pages/LSTM.py", label="房價預測")
+    st.sidebar.page_link("pages/RF_A.py", label="南科園區指標")

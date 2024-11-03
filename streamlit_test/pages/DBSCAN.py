@@ -14,6 +14,7 @@ def load_data(url):
     return df
 
 df = pd.read_csv("data/map.csv")
+df = df.dropna()
 
 # Create a slider for selecting the year
 year_min = int(df['交易年份'].min()) + 1
