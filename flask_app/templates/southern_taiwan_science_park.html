@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南科各項指標</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2"></script>
+</head>
+
+<body>
+
+    <div class="container mt-4">
+
+        <h1 class="text-center">南科各項指標</h1>
+
+        <!-- Chart 1 -->
+        <div id="chart1"></div>
+        <script>
+            const chart1Data = `{{ chart1_json | tojson }}`;
+            console.log("Chart 1 Data:", chart1Data);
+            vegaEmbed('#chart1', chart1Data).catch(console.error);
+        </script>
+
+        <!-- Chart 2 -->
+        <div id="chart2" class="mt-4"></div>
+        <script>
+            const chart2Data = `{{ chart2_json | tojson }}`;
+            console.log("Chart 2 Data:", chart2Data);
+            vegaEmbed('#chart2', chart2Data).catch(console.error);
+        </script>
+
+        <!-- Chart 3 -->
+        <div id="chart3" class="mt-4"></div>
+        <script>
+            const chart3Data = `{{ chart3_json | tojson }}`;
+            console.log("Chart 3 Data:", chart3Data);
+            vegaEmbed('#chart3', chart3Data).catch(console.error);
+        </script>
+
+        <!-- Column Selection Form -->
+        <form method="POST" class="mt-4">
+            <label for="columns">選擇要查看的欄位:</label>
+            <select id="columns" name="columns" multiple class="form-control">
+                {% for column in columns %}
+                <option value="{{ column }}" {% if column in request.form.getlist('columns') %}selected {% endif %}>
+                    {{ column }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary mt-2">更新圖表</button>
+        </form>
+
+        <!-- Selected Columns Chart -->
+        {% if selected_chart_json %}
+        <div id="selected_chart" class="mt-4"></div>
+        <script>
+            const selectedChartData = `{{ selected_chart_json | tojson }}`;
+            console.log("Rendering selected chart data:", selectedChartData);  // Debug: log selected chart data
+            vegaEmbed('#selected_chart', selectedChartData).catch(console.error);
+        </script>
+        {% else %}
+        <p class="mt-4">請選擇至少一個欄位來顯示圖表</p>
+        {% endif %}
+
+    </div>
+
+</body>
+
+</html>

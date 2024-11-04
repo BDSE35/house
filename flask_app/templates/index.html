@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首頁</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>選單</h2>
+            <a href="{{ url_for('index') }}">首頁</a>
+            <a href="{{ url_for('southern_taiwan_science_park') }}">南科園區指標</a>
+
+            <button class="dropdown-btn">南科聚落
+                <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-container">
+                <a href="{{ url_for('dbscan') }}">聚落分布 🔐</a>
+                <a href="{{ url_for('kde') }}">交易密度 👤</a>
+            </div>
+
+            <button class="dropdown-btn">房價特徵權重變化趨勢
+                <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-container">
+                <a href="{{ url_for('rf_all') }}">Random Forest 👤</a>
+                <a href="{{ url_for('xg_all') }}">XGboost 🔐</a>
+            </div>
+
+            <a href="{{ url_for('lstm') }}">房價預測</a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <h1>歡迎來到首頁</h1>
+            <div class="tableauPlaceholder" id="viz1730433030306" style="width: 100%; height: 100vh;">
+                <noscript>
+                    <a href="#">
+                        <img alt="總儀錶板"
+                            src="https://public.tableau.com/static/images/da/dashboard_17298362302980/sheet0/1_rss.png"
+                            style="border: none" />
+                    </a>
+                </noscript>
+                <object class="tableauViz" style="width: 100%; height: 100%;">
+                    <param name="host_url" value="https%3A%2F%2Fpublic.tableau.com%2F" />
+                    <param name="embed_code_version" value="3" />
+                    <param name="site_root" value="" />
+                    <param name="name" value="dashboard_17298362302980/sheet0" />
+                    <param name="tabs" value="no" />
+                    <param name="toolbar" value="no" />
+                    <param name="static_image"
+                        value="https://public.tableau.com/static/images/da/dashboard_17298362302980/sheet0/1.png" />
+                    <param name="animate_transition" value="yes" />
+                    <param name="display_static_image" value="yes" />
+                    <param name="display_spinner" value="yes" />
+                    <param name="display_overlay" value="yes" />
+                    <param name="display_count" value="yes" />
+                    <param name="language" value="zh-TW" />
+                    <param name="filter" value="publish=yes" />
+                </object>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Dropdown toggle */
+        var dropdown = document.getElementsByClassName("dropdown-btn");
+        for (var i = 0; i < dropdown.length; i++) {
+            dropdown[i].addEventListener("click", function () {
+                this.classList.toggle("active");
+                var dropdownContent = this.nextElementSibling;
+                if (dropdownContent.style.display === "block") {
+                    dropdownContent.style.display = "none";
+                } else {
+                    dropdownContent.style.display = "block";
+                }
+            });
+        }
+
+        // 根據螢幕寬度動態設置大小
+        var divElement = document.getElementById('viz1730433030306');
+        var vizElement = divElement.getElementsByTagName('object')[0];
+        if (window.innerWidth > 800) {
+            vizElement.style.width = '1000px';
+            vizElement.style.height = '827px';
+        } else if (window.innerWidth > 500) {
+            vizElement.style.width = '100%';
+            vizElement.style.height = '1000px';
+        } else {
+            vizElement.style.width = '100%';
+            vizElement.style.height = '1200px';
+        }
+
+        // 加載 Tableau JavaScript API
+        var scriptElement = document.createElement('script');
+        scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+        vizElement.parentNode.insertBefore(scriptElement, vizElement);
+    </script>
+
+</body>
+
+</html>
+
+</html>

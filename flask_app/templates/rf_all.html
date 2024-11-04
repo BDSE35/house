@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yearly Feature Importance Changes</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2"></script>
+</head>
+
+<body>
+
+    <div class="container mt-4">
+        <h1 class="text-center">Yearly Feature Importance Changes</h1>
+
+        <!-- Chart for 2012-2017 -->
+        <div id="chart_2012_2017"></div>
+        <script>
+            const chart2012_2017 = JSON.parse(`{{ chart_2012_2017_json | safe }}`);
+            vegaEmbed('#chart_2012_2017', chart2012_2017).catch(console.error);
+        </script>
+
+        <!-- Chart for 2018-2023 -->
+        <div id="chart_2018_2023" class="mt-4"></div>
+        <script>
+            const chart2018_2023 = JSON.parse(`{{ chart_2018_2023_json | safe }}`);
+            vegaEmbed('#chart_2018_2023', chart2018_2023).catch(console.error);
+        </script>
+
+        <!-- Stacked Chart for Yearly Importance -->
+        <div id="stacked_chart" class="mt-4"></div>
+        <script>
+            const stackedChart = JSON

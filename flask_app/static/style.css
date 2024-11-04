@@ -1,0 +1,64 @@
+/* Style for sidebar */
+.sidebar {
+    background-color: #333;
+    /* 深色背景 */
+    color: #fff;
+    /* 文字顏色為白色 */
+    width: 200px;
+    padding-top: 20px;
+}
+
+.sidebar h2 {
+    color: #fff;
+    padding-left: 15px;
+}
+
+/* Sidebar links */
+.sidebar a {
+    padding: 10px 15px;
+    text-decoration: none;
+    font-size: 16px;
+    color: #fff;
+    display: block;
+}
+
+.sidebar a:hover {
+    background-color: #575757;
+    color: white;
+}
+
+/* Dropdown button */
+.dropdown-btn {
+    padding: 10px 15px;
+    font-size: 16px;
+    color: #fff;
+    background: none;
+    /* 移除背景 */
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+}
+
+/* Dropdown button hover effect */
+.dropdown-btn:hover {
+    background-color: #575757;
+    color: #fff;
+}
+
+/* Dropdown content container */
+.dropdown-container {
+    display: none;
+    background-color: #444;
+    padding-left: 15px;
+}
+
+.dropdown-container a {
+    font-size: 14px;
+    color: #ddd;
+}
+
+.dropdown-container a:hover {
+    color: #fff;
+}
