@@ -13,24 +13,36 @@
 
 <body>
 
+    <!-- Home Button positioned on the top-left -->
+    <div style="position: absolute; top: 20px; left: 20px;">
+        <a href="/" class="btn btn-primary">回到首頁</a>
+    </div>
+
     <div class="container mt-4">
         <h1 class="text-center">Yearly Feature Importance Changes</h1>
 
         <!-- Chart for 2012-2017 -->
         <div id="chart_2012_2017"></div>
         <script>
-            const chart2012_2017 = JSON.parse(`{{ chart_2012_2017_json | safe }}`);
-            vegaEmbed('#chart_2012_2017', chart2012_2017).catch(console.error);
+            const chart2012_2017_spec = {{ rf_chart_2012_2017_json | safe }};
+            vegaEmbed('#chart_2012_2017', chart2012_2017_spec).catch(console.error);
         </script>
 
         <!-- Chart for 2018-2023 -->
         <div id="chart_2018_2023" class="mt-4"></div>
         <script>
-            const chart2018_2023 = JSON.parse(`{{ chart_2018_2023_json | safe }}`);
-            vegaEmbed('#chart_2018_2023', chart2018_2023).catch(console.error);
+            const chart2018_2023_spec = {{ rf_chart_2018_2023_json | safe }};
+            vegaEmbed('#chart_2018_2023', chart2018_2023_spec).catch(console.error);
         </script>
 
         <!-- Stacked Chart for Yearly Importance -->
         <div id="stacked_chart" class="mt-4"></div>
         <script>
-            const stackedChart = JSON
+            const stacked_chart_spec = {{ rf_stacked_chart_json | safe }};
+            vegaEmbed('#stacked_chart', stacked_chart_spec).catch(console.error);
+        </script>
+    </div>
+
+</body>
+
+</html>

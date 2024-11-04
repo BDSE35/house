@@ -6,58 +6,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DBScan</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
     <style>
-        /* #map-container {
+        #tableau-container {
+            width: 80%;
             height: 80vh;
-            width: 100%;
             margin: auto;
         }
 
-        .form-container {
+        .back-button {
             margin: 20px;
-        } */
+            text-align: center;
+        }
     </style>
+
     <script src="https://cdn.jsdelivr.net/npm/pydeck@0.4.0/bundle.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@deck.gl/core@8.7.10/dist.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@deck.gl/layers@8.7.10/dist.min.js"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
 </head>
 
 <body>
 
-    <div class="container form-container">
-        <form method="POST">
-            <label for="year">選擇交易年份:</label>
-            <input type="number" id="year" name="year" min="{{ year_min }}" max="{{ year_max }}"
-                value="{{ selected_year }}" class="form-control" />
-            <button type="submit" class="btn btn-primary mt-2">更新</button>
-        </form>
+    <!-- 回到首頁按鈕 -->
+    <div class="back-button">
+        <a href="/" class="btn btn-primary">回到首頁</a>
     </div>
 
-    <div id="map-container"></div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // 確保 `deck` 全局變量存在
-            if (typeof deck === 'undefined') {
-                console.error("DeckGL 庫未正確加載");
-                return;
-            }
-
-            try {
-                // 解析 PyDeck JSON 資料
-                const deckJson = JSON.parse(`{{ deck_json | safe }}`);
-                const mapContainer = document.getElementById("map-container");
-
-                // 使用 DeckGL 初始化
-                const deckInstance = new deck.DeckGL(deckJson);
-                deckInstance.setProps({ container: mapContainer });
-            } catch (error) {
-                console.error("DeckGL 初始化失敗", error);
-            }
-        });
-    </script>
+    <div class='tableauPlaceholder' id='viz1730720615183' style='position: relative'><noscript><a href='#'><img
+                    alt='DBscan - 2013 '
+                    src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;DB&#47;DBandRegion&#47;DBscan&#47;1_rss.png'
+                    style='border: none' /></a></noscript><object class='tableauViz' style='display:none;'>
+            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+            <param name='embed_code_version' value='3' />
+            <param name='site_root' value='' />
+            <param name='name' value='DBandRegion&#47;DBscan' />
+            <param name='tabs' value='no' />
+            <param name='toolbar' value='yes' />
+            <param name='static_image'
+                value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;DB&#47;DBandRegion&#47;DBscan&#47;1.png' />
+            <param name='animate_transition' value='yes' />
+            <param name='display_static_image' value='yes' />
+            <param name='display_spinner' value='yes' />
+            <param name='display_overlay' value='yes' />
+            <param name='display_count' value='yes' />
+            <param name='language' value='zh-TW' />
+            <param name='filter' value='publish=yes' />
+        </object></div>
+    <script
+        type='text/javascript'>                    var divElement = document.getElementById('viz1730720615183'); var vizElement = divElement.getElementsByTagName('object')[0]; vizElement.style.width = '100%'; vizElement.style.height = (divElement.offsetWidth * 0.75) + 'px'; var scriptElement = document.createElement('script'); scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js'; vizElement.parentNode.insertBefore(scriptElement, vizElement);                </script>
 
 </body>
 
