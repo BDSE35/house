@@ -14,6 +14,7 @@ def create_chart_altair(data, columns, title):
     melted_df = data.reset_index().melt(
         id_vars="西元年月", value_vars=columns, var_name="Category", value_name="Value"
     )
+
     # 過濾掉 Value 欄位中的 NaN 或無限值
     melted_df = melted_df[
         (~melted_df["Value"].isnull())
@@ -24,22 +25,14 @@ def create_chart_altair(data, columns, title):
     chart = (
         alt.Chart(melted_df)
         .mark_line()
-        .encode(x="西元年月:T", y="Value:Q", color="Category:N")
+        .encode(
+            x=alt.X("西元年月:T", title="日期", axis=alt.Axis(labelAngle=45)),
+            y=alt.Y("Value:Q", title="數值"),
+            color=alt.Color("Category:N", title="類別"),
+        )
         .properties(title=title, width=800, height=400)
     )
     return chart
-
-
-def remove_unnecessary_keys(chart_json_str):
-    # 解析 JSON 字符串為 Python 字典
-    chart_json = json.loads(chart_json_str)
-
-    # 移除不必要的屬性
-    chart_json.pop("datasets", None)
-    chart_json.pop("config", None)
-
-    # 將字典重新轉換為 JSON 字符串
-    return json.dumps(chart_json)
 
 
 # 首頁
@@ -48,73 +41,26 @@ def index():
     return render_template("index.html")
 
 
-# 載入台南地圖的 GeoJSON
-def load_geojson_data():
-    with open("data/Tainan_County.geojson", "r", encoding="utf-8") as f:
-        geojson_data = json.load(f)
-    return geojson_data
-
-
-# Load the mapdata once at startup
-geojson_data = load_geojson_data()
-
-
-@app.route("/map")
-def map():
-    # 設定圖層
-    layer = pdk.Layer(
-        "GeoJsonLayer",
-        geojson_data,
-        opacity=1.0,
-        stroked=True,
-        filled=False,
-        wireframe=True,
-        get_line_color=[255, 0, 0],
-        get_line_width=80,
-    )
-
-    # 定義地圖並設定 `initial_view_state`
-    deck = pdk.Deck(
-        initial_view_state={
-            "latitude": 23.13,
-            "longitude": 120.312480,
-            "zoom": 9,
-            "pitch": 10,
-        },
-        layers=[layer],
-    )
-
-    # 將地圖設定轉為 JSON
-    deck_json = deck.to_json()
-
-    return render_template("map.html", deck_json=deck_json)
-
-
 # 科學園區part
 def load_science_data():
-    # 載入數據，並解析日期欄位 "西元年月" 為 ISO 8601 格式的日期格式
-    df = pd.read_csv(
-        "data/park1015.csv",
-        encoding="utf-8-sig",
-        parse_dates=["西元年月"],
-    )
+    # 載入數據，並解析日期欄位 "西元年月" 為日期格式
+    df = pd.read_csv("data/park1015.csv", encoding="utf-8-sig")
 
-    # 移除不需要的 "Unnamed: 0" 欄位（如果存在）
-    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-
-    # 設定 "西元年月" 為索引
+    # 確保 "西元年月" 為索引
     if "西元年月" in df.columns:
         df.set_index("西元年月", inplace=True)
     else:
         raise ValueError("欄位 '西元年月' 不存在於資料中，請檢查資料檔案。")
 
+    # 刪除無效日期的行
+    df = df[df.index.notna()]
+
     # 將其他非數值欄位轉換為數值，無法轉換的設為 NaN
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # 將無限值替換為 NaN，並填充 NaN 值
-    df = df.replace([np.inf, -np.inf], np.nan)
-    df = df.fillna(0)
+    # 刪除包含無效數值的行
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
 
     return df
 
@@ -143,22 +89,17 @@ def southern_taiwan_science_park():
         df_science, default_columns3, "南科各項指標 - 用水量和污水處理量"
     )
 
-    # Convert charts to JSON strings
-    chart1_json = remove_unnecessary_keys(chart1.to_json())
-    chart2_json = remove_unnecessary_keys(chart2.to_json())
-    chart3_json = remove_unnecessary_keys(chart3.to_json())
-
-    print(chart1_json)
-    print(chart2_json)
-    print(chart3_json)
-    # Retrieve selected columns from the form submission
+    chart1_json = chart1.to_json()
+    chart2_json = chart2.to_json()
+    chart3_json = chart3.to_json()
+    # 獲取被選中的欄位
     selected_columns = request.form.getlist("columns")
-    # print("Selected columns:", selected_columns)  # Debug: check selected columns
     selected_chart_json = None
     if selected_columns:
         selected_chart = create_chart_altair(df_science, selected_columns, "選擇的指標")
         selected_chart_json = selected_chart.to_json()
-        # print(selected_chart_json)  # Debug: check if JSON was created
+        print("Selected columns:", selected_columns)
+        print("Selected chart JSON:", selected_chart_json)
 
     return render_template(
         "southern_taiwan_science_park.html",
@@ -170,141 +111,102 @@ def southern_taiwan_science_park():
     )
 
 
-# DBscan & KDE
+# Load GeoJSON and CSV data
+def load_geojson_data():
+    with open("data/Tainan_County.geojson", "r", encoding="utf-8") as f:
+        geojson_data = json.load(f)
+    return geojson_data
+
+
+geojson_data = load_geojson_data()
+
+
 def load_map_data():
     df = pd.read_csv("data/map.csv")
     return df
 
 
-# Load the map.scv once at startup
 df_map = load_map_data()
 
 
-@app.route("/dbscan", methods=["GET", "POST"])
-def dbscan():
-    year_min = int(df_map["交易年份"].min()) + 1
-    year_max = int(df_map["交易年份"].max()) - 1
+# Create map with points
+def create_map_with_points(selected_year=None):
+    geo_layer = pdk.Layer(
+        "GeoJsonLayer",
+        geojson_data,
+        opacity=1.0,
+        stroked=True,
+        filled=False,
+        wireframe=True,
+        get_line_color=[255, 0, 0],
+        get_line_width=80,
+    )
 
-    # Default to the minimum year, or use selected year from form submission
-    selected_year = request.form.get("year", year_min)
-    selected_year = int(selected_year)
+    # Filter map data based on year
+    if selected_year:
+        map_data = df_map[df_map["交易年份"] == selected_year]
+        map_data = map_data.head(10)
+        map_data = map_data.rename(columns={"經度": "longitude", "緯度": "latitude"})
+    else:
+        map_data = df_map.rename(columns={"經度": "longitude", "緯度": "latitude"})
 
-    # Filter the data based on the selected year
-    map_data = df_map[df_map["交易年份"] == selected_year][["經度", "緯度", "Region"]]
-    map_data = map_data.rename(columns={"經度": "longitude", "緯度": "latitude"})
-
-    # 移除含有 NaN 值的行
-    map_data = map_data.dropna()
-
-    # Map 'Region' to colors
-    def get_color(region):
-        color_map = {
-            "A": [255, 0, 0],  # Red
-            "B": [0, 255, 0],  # Green
-            "C": [0, 0, 255],  # Blue
-            "D": [255, 255, 0],  # Yellow
-            "E": [255, 165, 0],  # Orange
-            "F": [128, 0, 128],  # Purple
-        }
-        return color_map.get(
-            region, [0, 0, 0]
-        )  # Default to black if region is not in A-F
-
-    # Apply the color function to the data
-    map_data["color"] = map_data["Region"].apply(get_color)
-
-    # Create PyDeck layer using the map data with colors based on 'Region'
-    layer = pdk.Layer(
+    # Scatterplot layer for points
+    scatter_layer = pdk.Layer(
         "ScatterplotLayer",
         map_data,
         get_position="[longitude, latitude]",
         get_radius=100,
-        get_fill_color="color",
-        opacity=1.0,
+        get_fill_color="[255, 140, 0]",
+        opacity=0.6,
     )
 
-    # Define the PyDeck map
+    # Initialize deck with OpenStreetMap tile style and MapView
     deck = pdk.Deck(
-        map_style=None,
-        initial_view_state={
-            "latitude": 23.13,
-            "longitude": 120.312480,
-            "zoom": 9,
-            "pitch": 10,
-        },
-        layers=[layer],
+        map_style="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        initial_view_state=pdk.ViewState(
+            latitude=23.13, longitude=120.31248, zoom=9, pitch=10
+        ),
+        layers=[geo_layer, scatter_layer],
     )
 
-    # Render the map to JSON
-    deck_json = deck.to_json()
+    return deck.to_json()
+
+
+@app.route("/dbscan")
+def dbscan():
+    # year_min = int(df_map["交易年份"].min())
+    # year_max = int(df_map["交易年份"].max())
+    # selected_year = request.args.get("year", year_min)
+    # selected_year = int(selected_year)
+
+    # # 創建地圖的 JSON
+    # deck_json = create_map_with_points(selected_year=selected_year)
 
     return render_template(
         "dbscan.html",
-        deck_json=deck_json,
-        year_min=year_min,
-        year_max=year_max,
-        selected_year=selected_year,
+        # deck_json=deck_json,
+        # year_min=year_min,
+        # year_max=year_max,
+        # selected_year=selected_year,
     )
 
 
-@app.route("/kde", methods=["GET", "POST"])
+@app.route("/kde")
 def kde():
-    year_min = int(df_map["交易年份"].min()) + 1
-    year_max = int(df_map["交易年份"].max()) - 1
+    # year_min = int(df_map["交易年份"].min())
+    # year_max = int(df_map["交易年份"].max())
+    # selected_year = request.args.get("year", year_min)
+    # selected_year = int(selected_year)
 
-    # Default to the minimum year, or use selected year from form submission
-    selected_year = request.form.get("year", year_min)
-    selected_year = int(selected_year)
-
-    # Filter the data based on the selected year
-    map_data = df_map[df_map["交易年份"] == selected_year][
-        ["經度", "緯度", "KDE_class"]
-    ]
-    map_data = map_data.rename(columns={"經度": "longitude", "緯度": "latitude"})
-
-    # Map 'KDE_class' to colors
-    def get_color(region):
-        color_map = {
-            1: [255, 0, 0],  # Red
-            2: [0, 255, 0],  # Green
-            3: [0, 0, 255],  # Blue
-        }
-        return color_map.get(region, [0, 0, 0])  # Default to black if not in 1-3
-
-    # Apply the color function to the data
-    map_data["color"] = map_data["KDE_class"].apply(get_color)
-
-    # Create PyDeck layer using the map data with colors based on 'KDE_class'
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        map_data,
-        get_position="[longitude, latitude]",
-        get_radius=100,
-        get_fill_color="color",
-        opacity=1.0,
-    )
-
-    # Define the PyDeck map
-    deck = pdk.Deck(
-        map_style=None,
-        initial_view_state={
-            "latitude": 23.13,
-            "longitude": 120.312480,
-            "zoom": 9,
-            "pitch": 10,
-        },
-        layers=[layer],
-    )
-
-    # Render the map to JSON
-    deck_json = deck.to_json()
+    # 創建地圖的 JSON，僅顯示 KDE_class 的資料點
+    # deck_json = create_map_with_points(selected_year=selected_year, kde_class=None)
 
     return render_template(
         "kde.html",
-        deck_json=deck_json,
-        year_min=year_min,
-        year_max=year_max,
-        selected_year=selected_year,
+        # deck_json=deck_json,
+        # year_min=year_min,
+        # year_max=year_max,
+        # selected_year=selected_year,
     )
 
 

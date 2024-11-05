@@ -4,50 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tainan County Map</title>
+    <title>地圖展示</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- 加载 Mapbox 和 DeckGL -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/deck.gl@8.7.10/dist.min.js" defer></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet" />
-    <style>
-        #map-container {
-            height: 80vh;
-            width: 100%;
-            margin: auto;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@deck.gl/core@8.7.10/dist.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@deck.gl/layers@8.7.10/dist.min.js"></script>
 </head>
 
 <body>
-    <div class="container form-container">
-        <h1 class="text-center">Tainan City Map</h1>
-        <div id="map-container"></div>
-    </div>
+    <h1>地圖展示</h1>
+    <div id="map-container" style="width: 100%; height: 80vh;"></div>
 
     <script>
-        window.addEventListener("load", function () {
-            // 從 Flask 傳入的 deck_json 資料
-            let deckJson = {{ deck_json | tojson | safe
-        }};
+        // 將後端的 deck_json 傳遞給 deckConfig
+        const deckConfig = {{ deck_json | safe }};
 
-        // 設置初始的 view 狀態 (直接設定在 DeckGL 中，避免 undefined)
-        const initialViewState = {
-            latitude: deckJson.initialViewState?.latitude || 23.13,
-            longitude: deckJson.initialViewState?.longitude || 120.312480,
-            zoom: deckJson.initialViewState?.zoom || 9,
-            pitch: deckJson.initialViewState?.pitch || 10
-        };
+        document.addEventListener("DOMContentLoaded", function () {
+            console.log("deckConfig:", deckConfig);
 
-        // 初始化 DeckGL 地圖
-        const deckInstance = new deck.DeckGL({
-            ...deckJson,
-            container: "map-container",
-            initialViewState: initialViewState
-        });
+            const deckInstance = new deck.DeckGL({
+                initialViewState: deckConfig.initialViewState,
+                controller: true,
+                layers: deckConfig.layers,
+                container: "map-container"
+            });
         });
     </script>
-
 </body>
 
 </html>
