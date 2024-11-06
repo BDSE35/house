@@ -1,12 +1,37 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, session
 import pandas as pd
-import altair as alt
 import numpy as np
-import pydeck as pdk
+import folium
+import geopandas as gpd
+from shapely.geometry import Point
+from folium import Popup, Icon
+from folium.plugins import MarkerCluster
+import matplotlib.pyplot as plt
 import json
+from haversine import haversine
+import altair as alt
+import pydeck as pdk
+import os
+import configparser
+from matplotlib import rcParams
+
+# 设置字体为 Microsoft YaHei（微軟正黑體）
+
+rcParams["font.sans-serif"] = ["Microsoft YaHei"]
+rcParams["axes.unicode_minus"] = False  # 解决负号显示问题
 
 
 app = Flask(__name__)
+
+# 获取 .flask/config.ini 文件的路径
+config_path = os.path.join(os.path.dirname(__file__), ".flask", "config.ini")
+
+# 初始化配置解析器
+config = configparser.ConfigParser()
+config.read(config_path)
+
+# 将 secret_key 设置到 Flask 应用
+app.secret_key = config["flask"]["secret_key"]
 
 
 # 繪畫圖表
@@ -570,8 +595,163 @@ def xg_all():
     )
 
 
-@app.route("/lstm")
+# 加载数据
+def load_geojson(filepath):
+    try:
+        return gpd.read_file(filepath)
+    except Exception as e:
+        print(f"无法加载 GeoJSON 文件: {e}")
+        return None
+
+
+def load_csv(filepath):
+    try:
+        df = pd.read_csv(filepath)
+        return df[df["交易年份"] >= 2022]
+    except Exception as e:
+        print(f"无法加载地图数据: {e}")
+        return None
+
+
+# 加载地理数据
+counties = gpd.read_file("data/Tainan_County.geojson")
+df = pd.read_csv("data/newmap.csv")
+
+
+# 計算哈弗辛距離
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # 地球半徑，單位：公里
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
+    c = 2 * np.arcsin(np.sqrt(a))
+    return R * c
+
+
+@app.route("/lstm/map", methods=["GET"])
+def render_lstm_map():
+    m = folium.Map(location=[23.13, 120.312480], zoom_start=10)
+
+    # 添加行政區界線 GeoJSON 層
+    folium.GeoJson(
+        counties,
+        style_function=lambda feature: {
+            "fillColor": "white",
+            "color": "black",
+            "weight": 1,
+            "fillOpacity": 0.4,
+        },
+    ).add_to(m)
+
+    # 添加代表南科的灰色標記
+    folium.Marker(
+        location=(23.11210179661455, 120.27042389614857),
+        popup="南科",
+        tooltip="南科",
+        icon=Icon(color="gray"),
+    ).add_to(m)
+
+    # 如果 session 中有提交的資料，將動態標記添加到地圖
+    if "submitted_data" in session:
+        submitted_data = session["submitted_data"]
+        popup_content = f"""
+        <b>1.5KM內嫌惡設施:</b> {submitted_data['bad_count']}<br>
+        <b>1.5KM內好設施:</b> {submitted_data['good_count']}<br>
+        <b>{submitted_data['kde_class_display']}</b><br>
+        <b>市場狀態:</b> {submitted_data['market_status']}<br>
+        <b>預測價格:</b><br>
+        {"".join([f"{date}: {price} 元<br>" for date, price in submitted_data['forecast_prices'].items()])}
+        """
+        folium.Marker(
+            location=(submitted_data["lat"], submitted_data["lon"]),
+            popup=folium.Popup(popup_content, max_width=300),
+            icon=Icon(color="green"),
+        ).add_to(m)
+
+    # 將地圖轉為 HTML 格式並嵌入
+    return m._repr_html_()
+
+
+@app.route("/lstm", methods=["GET", "POST"])
 def lstm():
+    if request.method == "POST":
+        lat = float(request.form.get("latitude"))
+        lon = float(request.form.get("longitude"))
+        area = float(request.form.get("area"))
+
+        point = Point(lon, lat)
+        town = ""
+
+        # 判斷所點選的行政區
+        for _, row in counties.iterrows():
+            if row["geometry"].contains(point):
+                town = row["TOWN"]
+                break
+
+        # 計算與其他位置的距離，並找到最近的點
+        df["distance"] = df.apply(
+            lambda row: haversine(lat, lon, row["緯度"], row["經度"]), axis=1
+        )
+        closest_row = df.loc[df["distance"].idxmin()]
+
+        closest_price_per_ping = int(closest_row.get("單價元每坪", 0))
+        bad_count_0_1500 = int(closest_row.get("bad_count_0_1500", 0))
+        good_count_0_1500 = int(closest_row.get("good_count_0_1500", 0))
+        KDE_class = str(closest_row.get("KDE_class", "無資料"))
+
+        # 根據最近的編號取得預測價格
+        forecast_dates = ["2024-12-01", "2025-01-01", "2025-02-01"]
+        forecast_prices = {}
+        for date in forecast_dates:
+            matched_rows = df[
+                (df["編號"] == closest_row["編號"]) & (df["Date"] == date)
+            ]
+            if not matched_rows.empty:
+                forecast_prices[date] = int(matched_rows.iloc[0]["Predicted"])
+            else:
+                forecast_prices[date] = "無資料"
+
+        actual_price = closest_price_per_ping * area
+        market_status = "行情持平"
+        predicted_price = forecast_prices.get("2025-02-01", "無資料")
+        if isinstance(predicted_price, (int, float)):
+            if predicted_price > actual_price:
+                market_status = "行情看漲"
+            elif predicted_price < actual_price:
+                market_status = "行情看跌"
+
+        # 生成並保存預測房價圖表
+        dates = list(forecast_prices.keys())
+        prices = [forecast_prices[date] for date in dates]
+        fig, ax = plt.subplots()
+        ax.plot(dates, prices, marker="o", linestyle="-")
+        # ax.axhline(y=actual_price, color="red", linestyle="--", label="行情價")
+        ax.set_xlabel("日期")
+        ax.set_ylabel("預測價格 (元)")
+        ax.set_title("未來房價預測")
+        ax.legend()
+
+        # 確保保存目錄存在
+        if not os.path.exists("static/charts"):
+            os.makedirs("static/charts")
+        chart_path = f"static/charts/price_prediction_chart.png"
+        fig.savefig(chart_path)
+        plt.close(fig)
+
+        # 保存提交的數據到 session 中
+        session["submitted_data"] = {
+            "lat": lat,
+            "lon": lon,
+            "bad_count": bad_count_0_1500,
+            "good_count": good_count_0_1500,
+            "kde_class_display": KDE_class,
+            "forecast_prices": forecast_prices,
+            "market_status": market_status,
+            "chart_path": "/" + chart_path,
+        }
+        return jsonify(session["submitted_data"])
+
     return render_template("lstm.html")
 
 

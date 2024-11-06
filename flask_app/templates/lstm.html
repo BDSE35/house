@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地圖展示 - LSTM 預測</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mt-4">LSTM 預測地圖展示</h1>
+        <a href="/" class="btn btn-primary">回到首頁</a>
+
+        <!-- 地圖區域 -->
+        <div id="map-container" style="width: 100%; height: 500px;"></div>
+
+        <!-- 表單區域 -->
+        <form id="input-form" class="mt-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="latitude">緯度</label>
+                    <input type="text" class="form-control" id="latitude" name="latitude" placeholder="點擊地圖以獲取位置"
+                        required readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="longitude">經度</label>
+                    <input type="text" class="form-control" id="longitude" name="longitude" placeholder="點擊地圖以獲取位置"
+                        required readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="area">房屋坪數</label>
+                    <input type="number" class="form-control" id="area" name="area" value="30">
+                </div>
+                <div class="col-md-3">
+                    <label for="building-type">建築型態</label>
+                    <select class="form-control" id="building-type" name="building_type">
+                        <option value="住商大樓">住商大樓</option>
+                        <option value="公寓">公寓</option>
+                        <option value="透天厝">透天厝</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-3">
+                    <label for="material">主要建材</label>
+                    <select class="form-control" id="material" name="material">
+                        <option value="鋼骨">鋼骨</option>
+                        <option value="鋼筋">鋼筋</option>
+                        <option value="磚石">磚石</option>
+                        <option value="竹木">竹木</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="parking">有無車位</label>
+                    <select class="form-control" id="parking" name="parking">
+                        <option value="有">有</option>
+                        <option value="無">無</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="age">屋齡</label>
+                    <input type="number" class="form-control" id="age" name="age" value="5">
+                </div>
+                <div class="col-md-3">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">提交</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- 顯示結果的區域 -->
+        <div id="result" class="mt-4"></div>
+    </div>
+
+    <script>
+        // 初始化地圖，設置初始位置和縮放級別
+        document.addEventListener("DOMContentLoaded", function () {
+            const map = L.map("map-container").setView([23.13, 120.312480], 10);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 18,
+            }).addTo(map);
+
+            let marker;
+
+            // 點擊地圖，獲取經緯度並顯示在表單中
+            map.on("click", function (e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                $("#latitude").val(lat);
+                $("#longitude").val(lng);
+
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker([lat, lng]).addTo(map);
+            });
+        });
+
+        // 提交表單，發送Ajax請求到後端
+        $("#input-form").on("submit", function (event) {
+            event.preventDefault();
+            const formData = $(this).serialize();
+            $.post("/lstm", formData, function (data) {
+                let resultHtml = `<h3>提交結果：</h3>
+                    <p>1.5KM內嫌惡設施: ${data.bad_count}</p>
+                    <p>1.5KM內好設施: ${data.good_count}</p>
+                    <p>交易熱區: ${data.kde_class_display}</p>
+                    <p>市場狀態: ${data.market_status}</p>
+                    <p>預測價格:</p>`;
+                for (let date in data.forecast_prices) {
+                    resultHtml += `<p>${date}: ${data.forecast_prices[date]} 元</p>`;
+                }
+
+                // 加載預測價格圖表
+                resultHtml += `<h4>預測價格圖表：</h4><img src="${data.chart_path}" alt="預測價格圖表" style="max-width:100%;">`;
+
+                $("#result").html(resultHtml);
+            });
+        });
+    </script>
+</body>
+
+</html>
